@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.Collections.Generic;
+
+
 public delegate void AlertWhenLowOrHighHandler(string alertMessage);
 public struct vital
 {
@@ -57,25 +59,25 @@ class Checker
         {
             string message = "";
             message += "Patients " + vital_list[string_index].vital_id + " is low:" + val.ToString();
-            if (AlertWhenLowOrHigh != null)
-            {
-                AlertWhenLowOrHigh.Invoke(message);
-            }
+            alert(message);
             return false;
         }
         else if (val > vital_list[string_index].maxLimit)
         {
             string message = "";
             message += "Patients " + vital_list[string_index].vital_id + " is high:" + val.ToString();
-            if (AlertWhenLowOrHigh != null)
-            {
-                AlertWhenLowOrHigh.Invoke(message);
-            }
+            alert(message);
             return false;
         }
         return true;
     }
-
+    static void alert(string message)
+    {
+        if (AlertWhenLowOrHigh != null)
+        {
+            AlertWhenLowOrHigh.Invoke(message);
+        }
+    }
     static void addVital(string string_id, float min, float max)
     {
         vital temp;
