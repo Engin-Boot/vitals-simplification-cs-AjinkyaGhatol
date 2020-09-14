@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Collections.Generic;
+public delegate void AlertWhenLowOrHighHandler(string alertMessage);
 public struct vital
 {
     public string vital_id;
@@ -12,9 +13,29 @@ public struct vital_array
     public string string_id;
     public float val;
 }
+public class EmailAlert
+{
+    //Event Handler - Method
+    public void Update(string alertMessage)
+    {
+        Console.WriteLine("Send Email:" + alertMessage);
+
+    }
+}
+//Subscribers/Observers/EventSink
+//here subscribers are not a multiple customers ,it is multiple events we want to trigger when order status change
+public class SMSAlert
+{
+    public void Notify(string alertMessage)
+    {
+        Console.WriteLine("send SMS:" + alertMessage);
+    }
+
+}
 class Checker
 {
-    static List<vital> vital_list=new List<vital>();
+    public static event AlertWhenLowOrHighHandler AlertWhenLowOrHigh;
+    static List<vital> vital_list = new List<vital>();
     static int getIndex(string string_id)
     {
         int id = -1;
@@ -36,18 +57,25 @@ class Checker
         {
             string message = "";
             message += "Patients " + vital_list[string_index].vital_id + " is low:" + val.ToString();
-            Console.WriteLine(message);
+            if (AlertWhenLowOrHigh != null)
+            {
+                AlertWhenLowOrHigh.Invoke(message);
+            }
             return false;
         }
         else if (val > vital_list[string_index].maxLimit)
         {
             string message = "";
             message += "Patients " + vital_list[string_index].vital_id + " is high:" + val.ToString();
-            Console.WriteLine(message);
+            if (AlertWhenLowOrHigh != null)
+            {
+                AlertWhenLowOrHigh.Invoke(message);
+            }
             return false;
         }
         return true;
     }
+
     static void addVital(string string_id, float min, float max)
     {
         vital temp;
@@ -86,8 +114,8 @@ class Checker
             return isOk(index_of_added, val);
         }
     }
-   
-    
+
+
     static void ExpectTrue(bool expression)
     {
         if (!expression)
@@ -116,6 +144,11 @@ class Checker
     }
     static int Main()
     {
+        EmailAlert _emailAlert = new EmailAlert();
+        SMSAlert _smsAlert = new SMSAlert();
+
+        AlertWhenLowOrHighHandler _handler_email = new AlertWhenLowOrHighHandler(_emailAlert.Update);
+        AlertWhenLowOrHighHandler _handler_sms = new AlertWhenLowOrHighHandler(_smsAlert.Notify);
         addVital("BPM", 70, 150);
         addVital("SPO2", 90, 1000);
         addVital("RESPRATE", 30, 95);
@@ -125,11 +158,13 @@ class Checker
         ExpectTrue(checkVital("SPO2", 95));
         ExpectTrue(checkVital("RESPRATE", 60));
 
+        AlertWhenLowOrHigh += _handler_email;
         //false results
         ExpectFalse(checkVital("BPM", 40));
         ExpectFalse(checkVital("SPO2", 89));
         ExpectFalse(checkVital("RESPRATE", 96));
-
+        AlertWhenLowOrHigh -= _handler_email;
+        AlertWhenLowOrHigh += _handler_sms;
         ExpectTrue(checkVital("BPM", 80));
         ExpectFalse(checkVital("BPM", 160));
 
@@ -137,7 +172,7 @@ class Checker
         ExpectTrue(checkVital("SPO2", 90));
         ExpectFalse(checkVital("SPO2", 89));
 
-        
+
         ExpectTrue(checkVital("RESPRATE", 40));
         ExpectFalse(checkVital("RESPRATE", 100));
 
@@ -153,7 +188,7 @@ class Checker
         ExpectFalse(checkVital("SUGAR", 50));
 
         //check multiple vitals at once
-        vital_array[] vital_array_to_pass=new vital_array[5];
+        vital_array[] vital_array_to_pass = new vital_array[5];
 
         //all are within range
         vital_array_to_pass[0].string_id = "BPM";
@@ -192,7 +227,7 @@ class Checker
         vital_array_to_pass2[1].val = 95;
         vital_array_to_pass2[2].string_id = "RESPRATE";
         vital_array_to_pass2[2].val = 60;
-        
+
         ExpectTrue(checkVital(vital_array_to_pass2, vital_array_to_pass2.Length));
 
         //bpm out of range
